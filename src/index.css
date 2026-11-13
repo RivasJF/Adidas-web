@@ -57,3 +57,50 @@ body {
 .animate-fade-in {
   animation: fade-in 0.2s ease-out;
 }
+
+/* Impresión de facturas (Guardar como PDF) */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    min-height: auto !important;
+  }
+
+  /* Oculta navegación, pie, carrito y cualquier barra de acciones */
+  header,
+  footer,
+  [role='dialog'],
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    background: #fff !important;
+    padding: 0 !important;
+  }
+
+  .invoice-sheet {
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .invoice-sheet table {
+    page-break-inside: auto;
+  }
+
+  .invoice-sheet tr {
+    page-break-inside: avoid;
+  }
+
+  .invoice-sheet thead {
+    display: table-header-group;
+  }
+}

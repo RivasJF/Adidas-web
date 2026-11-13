@@ -1,4 +1,5 @@
 import type { CartItem } from './cart.types';
+import type { BillingData } from './invoice.types';
 
 export interface CustomerData {
   firstName: string;
@@ -29,6 +30,7 @@ export interface Order {
   orderNumber: string;
   date: string;
   customer: CustomerData;
+  billing: BillingData | null;
   payment: PaymentData;
   items: CartItem[];
   subtotal: number;
@@ -41,10 +43,18 @@ export interface Order {
 
 export interface OrderContextType {
   customerData: CustomerData | null;
+  billingData: BillingData | null;
   paymentData: PaymentData | null;
   currentOrder: Order | null;
   saveCustomerData: (data: CustomerData) => void;
+  saveBillingData: (data: BillingData | null) => void;
   savePaymentData: (data: PaymentData) => void;
-  createOrder: (items: CartItem[], total: number, subtotal: number, shipping: number) => Order;
+  createOrder: (
+    items: CartItem[],
+    total: number,
+    subtotal: number,
+    shipping: number,
+    payment?: PaymentData
+  ) => Order;
   resetOrder: () => void;
 }

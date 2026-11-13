@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ArrowLeft, User, Phone, Mail, MapPin, Package } from 'lucide-react';
 import { CheckoutStepper } from '../components/CheckoutStepper';
+import { BillingForm } from '../components/BillingForm';
+import { validateBilling, type BillingErrors } from '../service/billingValidation';
 import { useCart } from '../shared/context/cart.context';
 import { useOrder } from '../shared/context/order.context';
 import type { CustomerData } from '../shared/types/order.types';
+import type { BillingData } from '../shared/types/invoice.types';
+import { DEFAULT_BILLING } from '../shared/types/invoice.types';
 
 const initialForm: CustomerData = {
   firstName: '',
@@ -47,10 +51,20 @@ const validate = (form: CustomerData): Errors => {
 export const PersonalInfoPage: React.FC = () => {
   const navigate = useNavigate();
   const { items, subtotal, shipping, total, totalItems } = useCart();
-  const { customerData, saveCustomerData } = useOrder();
+  const { customerData, billingData, saveCustomerData, saveBillingData } = useOrder();
 
   const [form, setForm] = useState<CustomerData>(customerData ?? initialForm);
+  const [billing, setBilling] = useState<BillingData>(
+    billingData ?? {
+      ...DEFAULT_BILLING,
+      billingEmail: customerData?.email ?? '',
+      businessName: customerData
+        ? `${customerData.firstName} ${customerData.lastName}`.trim()
+        : '',
+    }
+  );
   const [errors, setErrors] = useState<Errors>({});
+  const [billingErrors, setBillingErrors] = useState<BillingErrors>({});
   const [touched, setTouched] = useState(false);
 
   // Redirigir al catálogo si el carrito está vacío
@@ -71,17 +85,25 @@ export const PersonalInfoPage: React.FC = () => {
   const handleBlur = () => {
     setTouched(true);
     setErrors(validate(form));
+    setBillingErrors(validateBilling(billing));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setTouched(true);
     const validationErrors = validate(form);
+    const billingValidation = validateBilling(billing);
     setErrors(validationErrors);
+    setBillingErrors(billingValidation);
 
-    if (Object.keys(validationErrors).length > 0) {
+    const hasErrors =
+      Object.keys(validationErrors).length > 0 ||
+      Object.keys(billingValidation).length > 0;
+
+    if (hasErrors) {
       // Enfocar el primer campo con error
-      const firstError = Object.keys(validationErrors)[0];
+      const firstError =
+        Object.keys(validationErrors)[0] ?? Object.keys(billingValidation)[0];
       document.querySelector(`[name="${firstError}"]`)?.scrollIntoView({
         behavior: 'smooth',
         block: 'center',
@@ -90,6 +112,7 @@ export const PersonalInfoPage: React.FC = () => {
     }
 
     saveCustomerData(form);
+    saveBillingData(billing);
     navigate('/checkout/pago');
   };
 
@@ -113,7 +136,8 @@ export const PersonalInfoPage: React.FC = () => {
             Datos Personales
           </h1>
           <p className="text-gray-600 mt-2">
-            Completa tu información de contacto y dirección de entrega.
+            Completa tu información de contacto, dirección de entrega y datos
+            fiscales para generar tu factura (CFDI).
           </p>
         </div>
 
@@ -331,6 +355,19 @@ export const PersonalInfoPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Datos de facturación */}
+              <BillingForm
+                value={billing}
+                onChange={setBilling}
+                errors={billingErrors}
+                touched={touched}
+                customer={form}
+                onValidate={() => {
+                  setTouched(true);
+                  setBillingErrors(validateBilling(billing));
+                }}
+              />
 
               {/* Actions */}
               <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-100">

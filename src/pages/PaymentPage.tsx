@@ -13,7 +13,8 @@ import {
 import { CheckoutStepper } from '../components/CheckoutStepper';
 import { useCart } from '../shared/context/cart.context';
 import { useOrder } from '../shared/context/order.context';
-import type { PaymentMethod } from '../shared/types/order.types';
+import { useInvoice } from '../shared/context/invoice.context';
+import type { PaymentData, PaymentMethod } from '../shared/types/order.types';
 
 const formatCardNumber = (value: string) => {
   const digits = value.replace(/\D/g, '').slice(0, 16);
@@ -38,6 +39,7 @@ export const PaymentPage: React.FC = () => {
   const navigate = useNavigate();
   const { items, subtotal, shipping, total, totalItems, clearCart } = useCart();
   const { customerData, savePaymentData, createOrder } = useOrder();
+  const { createInvoiceFromOrder } = useInvoice();
 
   const [method, setMethod] = useState<PaymentMethod>('card');
   const [cardNumber, setCardNumber] = useState('');
@@ -100,20 +102,24 @@ export const PaymentPage: React.FC = () => {
 
     // Simulación de procesamiento de pago (2s)
     setTimeout(() => {
-      savePaymentData({
+      const paymentInfo: PaymentData = {
         method,
         cardNumber: method === 'card' ? cardNumber.replace(/\s/g, '') : undefined,
         cardHolder: method === 'card' ? cardHolder : undefined,
         cardExp: method === 'card' ? cardExp : undefined,
         transferBank: method === 'transfer' ? transferBank : undefined,
-      });
+      };
+      savePaymentData(paymentInfo);
 
-      const order = createOrder(items, total, subtotal, shipping);
+      const order = createOrder(items, total, subtotal, shipping, paymentInfo);
+      const invoice = createInvoiceFromOrder(order);
 
       // Vaciar carrito y persistir la orden antes de navegar
       clearCart();
       setIsProcessing(false);
-      navigate('/checkout/confirmacion', { state: { orderId: order.id } });
+      navigate('/checkout/confirmacion', {
+        state: { orderId: order.id, invoiceId: invoice.id },
+      });
     }, 2000);
   };
 

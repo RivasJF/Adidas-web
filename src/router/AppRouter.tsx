@@ -7,6 +7,7 @@ import { HomePage } from '../pages/HomePage';
 import { PersonalInfoPage } from '../pages/PersonalInfoPage';
 import { PaymentPage } from '../pages/PaymentPage';
 import { OrderConfirmationPage } from '../pages/OrderConfirmationPage';
+import { InvoicePage } from '../pages/InvoicePage';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -33,6 +34,7 @@ export const AppRouter = () => {
           <Route path="/checkout/datos" element={<PersonalInfoPage />} />
           <Route path="/checkout/pago" element={<PaymentPage />} />
           <Route path="/checkout/confirmacion" element={<OrderConfirmationPage />} />
+          <Route path="/factura/:invoiceId" element={<InvoicePage />} />
           <Route path="*" element={<HomePage search={searchTerm} onSearchChange={setSearchTerm} />} />
         </Routes>
       </div>

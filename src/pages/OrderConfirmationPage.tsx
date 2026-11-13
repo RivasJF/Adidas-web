@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useEffect, useMemo } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   CheckCircle2,
   Package,
@@ -12,10 +12,15 @@ import {
   CalendarClock,
   ArrowRight,
   Home,
+  ReceiptText,
+  Printer,
 } from 'lucide-react';
 import { CheckoutStepper } from '../components/CheckoutStepper';
 import { useOrder } from '../shared/context/order.context';
+import { useInvoice } from '../shared/context/invoice.context';
+import { invoiceService, formatMXN } from '../service/invoiceService';
 import type { PaymentMethod } from '../shared/types/order.types';
+import type { Invoice } from '../shared/types/invoice.types';
 
 const paymentLabel: Record<PaymentMethod, { text: string; icon: React.ReactNode }> = {
   card: { text: 'Tarjeta de Crédito / Débito', icon: <CreditCard className="w-4 h-4" /> },
@@ -25,7 +30,9 @@ const paymentLabel: Record<PaymentMethod, { text: string; icon: React.ReactNode 
 
 export const OrderConfirmationPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentOrder, resetOrder } = useOrder();
+  const { getInvoiceById } = useInvoice();
 
   useEffect(() => {
     if (!currentOrder) {
@@ -33,6 +40,15 @@ export const OrderConfirmationPage: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const invoice: Invoice | null = useMemo(() => {
+    if (!currentOrder) return null;
+    const state = location.state as { invoiceId?: string } | null;
+    if (state?.invoiceId) {
+      return getInvoiceById(state.invoiceId) ?? null;
+    }
+    return invoiceService.getByOrderNumber(currentOrder.orderNumber) ?? null;
+  }, [currentOrder, location.state, getInvoiceById]);
 
   if (!currentOrder) return null;
 
@@ -101,6 +117,52 @@ export const OrderConfirmationPage: React.FC = () => {
             <p className="text-sm font-black">{payment.text}</p>
           </div>
         </div>
+
+        {/* Factura */}
+        {invoice && (
+          <section className="no-print bg-white border-2 border-black p-6 mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-5">
+            <div className="w-12 h-12 flex-shrink-0 bg-black text-white flex items-center justify-center">
+              <ReceiptText className="w-6 h-6" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-500 mb-1">
+                Factura generada · CFDI {invoice.cfdiVersion}
+              </p>
+              <p className="text-lg sm:text-xl font-black tracking-wide break-all">
+                {invoice.invoiceNumber}
+              </p>
+              <p className="text-sm text-gray-600 mt-0.5">
+                RFC {invoice.receiver.rfc} · Total{' '}
+                <strong>{formatMXN(invoice.total)} MXN</strong> ·{' '}
+                <span
+                  className={
+                    invoice.paymentStatus === 'Pagada'
+                      ? 'text-green-600 font-bold'
+                      : 'text-yellow-600 font-bold'
+                  }
+                >
+                  {invoice.paymentStatus}
+                </span>
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                to={`/factura/${invoice.id}`}
+                className="flex items-center gap-2 border-2 border-black px-5 py-3 text-xs font-black uppercase tracking-wider text-black hover:bg-black hover:text-white transition-colors"
+              >
+                <ReceiptText className="w-4 h-4" />
+                Ver Factura
+              </Link>
+              <Link
+                to={`/factura/${invoice.id}?print=1`}
+                className="flex items-center gap-2 bg-black text-white px-5 py-3 text-xs font-black uppercase tracking-wider hover:bg-neutral-800 transition-colors"
+              >
+                <Printer className="w-4 h-4" />
+                Descargar PDF
+              </Link>
+            </div>
+          </section>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Order items */}
